@@ -17,7 +17,6 @@ library(jsonlite)
 
 generateMap = function(inputFileName) {
   return (fromJSON(inputFileName))
-  
 }
 
 generateOutputBLMFilePath = function(inputFileName, outputDirectoryPath) {
