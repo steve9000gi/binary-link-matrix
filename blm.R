@@ -52,14 +52,13 @@ populateLinkDataFrame = function(links, blankDF) {
   # node[id = i] and node[id=j] in either direction.
   df = blankDF
   nLinks = dim(links)[1]
-  write(paste0('nLinks: "', nLinks, '"; ', typeof(nLinks)), "/Users/stevec/Documents/blm/error.out", append = TRUE)
-  
+
   if (!is.null(nLinks)) {
     for (i in 1:nLinks) {
       s = as.character(links$source[i])
       t = as.character(links$target[i])
       df[[s, t]] = 1
-      df[[t, s]] = 1
+      df[[t, s]] = 1 # Treats graph as non-directed
     }
   }
   return (df)  
@@ -70,15 +69,16 @@ generateNodeTypeVector = function(map) {
   # types, based on our System Support Map conventions.
   nShapes = length(map$nodes$shape)
   nodeTypes=c()
-  for (i in 1:nShapes) {
-    nodeTypes[i] = switch(map$nodes$shape[i],
-                          "circle"    = "role",
-                          "rectangle" = "responsibility",
-                          "diamond"   = "need",
-                          "ellipse"   = "resource",
-                          "star"      = "wish",
-                          "noBorder"  =  "text"
-                          )
+  if (!is.null(nShapes)) {
+    for (i in 1:nShapes) {
+      nodeTypes[i] = switch(map$nodes$shape[i],
+                            "circle"    = "role",
+                            "rectangle" = "responsibility",
+                            "diamond"   = "need",
+                            "ellipse"   = "resource",
+                            "star"      = "wish",
+                            "noBorder"  =  "text"                            )
+    }
   }
   return (nodeTypes)
 }
@@ -87,7 +87,6 @@ generateNodeClasses = function(map) {
   # Accepts a map, returns the corresponding node
   # classes, based on our System Support Map conventions.
   nShapes = length(map$nodes$shape)
-  #classes = list("role" : c(), )
   roles  = c()
   resps  = c()
   needs  = c()
