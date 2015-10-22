@@ -52,11 +52,15 @@ populateLinkDataFrame = function(links, blankDF) {
   # node[id = i] and node[id=j] in either direction.
   df = blankDF
   nLinks = dim(links)[1]
-  for (i in 1:nLinks) {
-    s = as.character(links$source[i])
-    t = as.character(links$target[i])
-    df[[s, t]] = 1
-    df[[t, s]] = 1
+  write(paste0('nLinks: "', nLinks, '"; ', typeof(nLinks)), "/Users/stevec/Documents/blm/error.out", append = TRUE)
+  
+  if (!is.null(nLinks)) {
+    for (i in 1:nLinks) {
+      s = as.character(links$source[i])
+      t = as.character(links$target[i])
+      df[[s, t]] = 1
+      df[[t, s]] = 1
+    }
   }
   return (df)  
 }
@@ -121,18 +125,25 @@ processJSON = function(inputFileName, outputDirectoryPath) {
   nodes <- data.frame(map$nodes$id, nodeType, map$nodes$name)
   names(nodes) <- c("NodeID", "NodeType", "Name")
   links <- data.frame(map$links$source, map$links$target, map$links$name)
-  names(links) <- c("Source", "Target", "Name")
+  if (length(links) > 0) {
+    names(links) <- c("Source", "Target", "Name")
+  }
 
   rowNames = 1:length(map$nodes$id)
   NodeID = map$nodes$id
   linkDF = populateLinkDataFrame(map$links, initLinkDataFrame(map$nodes$id))
-  write.table(cbind(nodes, NodeID, linkDF),
-              file = blmFilePath, append = FALSE,
-              quote = FALSE, row.names = rowNames, col.names = NA, sep = "\t")
-  write("\n", file = blmFilePath, append = TRUE)
-  write.table(links,
-              file = blmFilePath, append = TRUE,
-              quote = FALSE, row.names = TRUE, col.names = NA, sep = "\t")
+  tryCatch({
+    write.table(cbind(nodes, NodeID, linkDF),
+                file = blmFilePath, append = FALSE,
+                quote = FALSE, row.names = rowNames, col.names = NA, sep = "\t")
+    write("\n", file = blmFilePath, append = TRUE)
+    write.table(links,
+                file = blmFilePath, append = TRUE,
+                quote = FALSE, row.names = TRUE, col.names = NA, sep = "\t")
+  }, error = function(e) {
+    message(e)
+    return(NULL)
+  })
   return (classes)
 }
 
