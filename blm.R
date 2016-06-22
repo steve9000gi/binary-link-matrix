@@ -1,16 +1,22 @@
-# R script blm.R 2015/10/22 (blm: binary link matrix)
-# Accepts paths to input and output directories as command line arguments. For each json file in
-# the input directory, read that file into variable "map", then create a "binary link matrix" as a
-# data-frame of dimension n, where n is the number of nodes in the input JSON file. The rows and
-# columns of the data frame are named by the node names "map$nodes$name". The value of m[i, j] is 1
-# if there is a link between node[i] and node[j], otherwise 0. For each file write 1) the blm to a
-# csv output file, along with 2) a list of nodes showing id, type (role, responsibility, etc.), and
-# name (associated text), and 3) a list of links showing source and target node ids and name
-# (associated text).
+# R script blm.R 2016/06/22 (blm: binary link matrix)
 #
-# Also create a single "node classes" file wth a list of the names of all the nodes from all the
-# files in the input directory, where those names are organized by node type. Thus, names for all
-# the roles are listed together, names for all responsibilities are listed, etc.
+# Usage:
+#   RScript ./blm.R /path/to/input/direcory /path/to/output/directory
+#
+# For each SSM .json file in the input directory, read that file into variable
+#"map", then create a "binary link matrix" as a data-frame of dimension n, where
+# n is the number of nodes in the input .json file. The rows and columns of the
+# data frame are named by the node names "map$nodes$name". The value of m[
+# , j] is 1 if there is a link between node[i] and node[j], otherwise 0. For
+# each file write 1) the blm to a csv output file, along with 2) a list of nodes
+# showing id, type (role, responsibility, etc.), and name (associated text), and
+# 3) a list of links showing source and target node ids and name (i.e., the text
+# associated with that link).
+#
+# Also create a single "node classes" file wth a list of the names of all the
+# nodes from all the files in the input directory, where those names are
+# organized by node type. Thus, names for all the "role" nodes are listed
+# together, names for all "responsibility" nodes are listed together, etc.
 
 library(tools)
 library(jsonlite)
@@ -22,7 +28,8 @@ generateMap = function(inputFileName) {
 generateOutputBLMFilePath = function(inputFileName, outputDirectoryPath) {
   charVec = strsplit(inputFileName, "/")
   fNameBase = file_path_sans_ext(charVec[[1]][length(charVec[[1]])]);
-  outputBLMPath = paste0(outputDirectoryPath, "/", fNameBase, "-BLM.csv", collapse = "")
+  outputBLMPath = paste0(outputDirectoryPath, "/", fNameBase, "-BLM.csv",
+                         collapse = "")
   return (outputBLMPath)
 }
 
@@ -49,44 +56,44 @@ initLinkDataFrame <- function(nodeId) {
 populateLinkDataFrame = function(links, blankDF) {
   # For a given cell from row[i] and column[j], where i and j are the ids of
   # their respective nodes, put 1 in that cell if there is a link from
-  # node[id = i] and node[id=j] in either direction.
+  # node[id = i] and node[id = j] in either direction.
   df = blankDF
   nLinks = dim(links)[1]
-
-  if (!is.null(nLinks)) {
-    for (i in 1:nLinks) {
-      s = as.character(links$source[i])
-      t = as.character(links$target[i])
-      df[[s, t]] = 1
-      df[[t, s]] = 1 # Treats graph as non-directed
-    }
+  if (is.null(nLinks)) {
+    return (df)
+  }
+  for (i in 1:nLinks) {
+    s = as.character(links$source[i])
+    t = as.character(links$target[i])
+    df[[s, t]] = 1
+    df[[t, s]] = 1
   }
   return (df)  
 }
 
 generateNodeTypeVector = function(map) {
-  # Accepts a map, returns a vector of the corresponding node
-  # types, based on our System Support Map conventions.
+  # Accepts a map, returns a vector of the corresponding node types, based on
+  # System Support Map conventions.
   nShapes = length(map$nodes$shape)
   nodeTypes=c()
-  if (!is.null(nShapes)) {
-    for (i in 1:nShapes) {
-      nodeTypes[i] = switch(map$nodes$shape[i],
-                            "circle"    = "role",
-                            "rectangle" = "responsibility",
-                            "diamond"   = "need",
-                            "ellipse"   = "resource",
-                            "star"      = "wish",
-                            "noBorder"  =  "text"                            )
-    }
+  for (i in 1:nShapes) {
+    nodeTypes[i] = switch(map$nodes$shape[i],
+                          "circle"    = "role",
+                          "rectangle" = "responsibility",
+                          "diamond"   = "need",
+                          "ellipse"   = "resource",
+                          "star"      = "wish",
+                          "noBorder"  =  "text"
+                          )
   }
   return (nodeTypes)
 }
 
 generateNodeClasses = function(map) {
-  # Accepts a map, returns the corresponding node
-  # classes, based on our System Support Map conventions.
+  # Accepts a map, returns the corresponding node classes, based on System
+  # Support Map conventions.
   nShapes = length(map$nodes$shape)
+  #classes = list("role" : c(), )
   roles  = c()
   resps  = c()
   needs  = c()
@@ -117,32 +124,25 @@ generateNodeClasses = function(map) {
 processJSON = function(inputFileName, outputDirectoryPath) {
   map = generateMap(inputFileName)
   blmFilePath = generateOutputBLMFilePath(inputFileName, outputDirectoryPath)
-  outputDirectoryPath
-  
   nodeType = generateNodeTypeVector(map)
   classes = generateNodeClasses(map)
-  nodes <- data.frame(map$nodes$id, nodeType, map$nodes$name)
-  names(nodes) <- c("NodeID", "NodeType", "Name")
+  nodes <- data.frame(map$nodes$id, nodeType, map$nodes$name, inputFileName)
+  names(nodes) <- c("NodeID", "NodeType", "Name", "Source")
   links <- data.frame(map$links$source, map$links$target, map$links$name)
-  if (length(links) > 0) {
+  if (nrow(links) > 0) {
     names(links) <- c("Source", "Target", "Name")
   }
 
   rowNames = 1:length(map$nodes$id)
   NodeID = map$nodes$id
   linkDF = populateLinkDataFrame(map$links, initLinkDataFrame(map$nodes$id))
-  tryCatch({
-    write.table(cbind(nodes, NodeID, linkDF),
-                file = blmFilePath, append = FALSE,
-                quote = FALSE, row.names = rowNames, col.names = NA, sep = "\t")
-    write("\n", file = blmFilePath, append = TRUE)
-    write.table(links,
-                file = blmFilePath, append = TRUE,
-                quote = FALSE, row.names = TRUE, col.names = NA, sep = "\t")
-  }, error = function(e) {
-    message(e)
-    return(NULL)
-  })
+  write.table(cbind(nodes, NodeID, linkDF),
+              file = blmFilePath, append = FALSE,
+              quote = FALSE, row.names = rowNames, col.names = NA, sep = "\t")
+  write("\n", file = blmFilePath, append = TRUE)
+  write.table(links,
+              file = blmFilePath, append = TRUE,
+              quote = FALSE, row.names = TRUE, col.names = NA, sep = "\t")
   return (classes)
 }
 
@@ -184,3 +184,4 @@ write("\nWISHES:", outputNodeClassesFileName, append = TRUE)
 write(wishes, outputNodeClassesFileName, append = TRUE)
 write("\nTEXTS:", outputNodeClassesFileName, append = TRUE)
 write(texts, outputNodeClassesFileName, append = TRUE)
+
