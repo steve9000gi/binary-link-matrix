@@ -34,7 +34,7 @@ generateOutputBLMFilePath = function(inputFileName, outputDirectoryPath) {
 }
 
 generateOutputNodeClassesFileName = function(outputDirectoryPath) {
-  return(paste0(outputDirectoryPath, "/NodeClasses.csv"))
+  return (paste0(outputDirectoryPath, "/NodeClasses.csv"))
 }
 
 initLinkDataFrame <- function(nodeId) {
@@ -60,7 +60,7 @@ populateLinkDataFrame = function(links, blankDF) {
   df = blankDF
   nLinks = dim(links)[1]
   if (is.null(nLinks)) {
-    return (df)
+    return (NULL)
   }
   for (i in 1:nLinks) {
     s = as.character(links$source[i])
@@ -75,7 +75,11 @@ generateNodeTypeVector = function(map) {
   # Accepts a map, returns a vector of the corresponding node types, based on
   # System Support Map conventions.
   nShapes = length(map$nodes$shape)
+  write(paste("nShapes: ", nShapes), stdout())
   nodeTypes=c()
+  if (nShapes < 1) {
+    return (nodeTypes)
+  }
   for (i in 1:nShapes) {
     nodeTypes[i] = switch(map$nodes$shape[i],
                           "circle"    = "role",
@@ -93,13 +97,15 @@ generateNodeClasses = function(map) {
   # Accepts a map, returns the corresponding node classes, based on System
   # Support Map conventions.
   nShapes = length(map$nodes$shape)
-  #classes = list("role" : c(), )
   roles  = c()
   resps  = c()
   needs  = c()
   rsrces = c()
   wishes = c()
   texts  = c()
+  if (nShapes < 1) {
+    return (NULL)
+  }
   for (i in 1:nShapes) {
     shape = map$nodes$shape[i]
     if (shape == "circle") {
@@ -126,6 +132,9 @@ processJSON = function(inputFileName, outputDirectoryPath) {
   blmFilePath = generateOutputBLMFilePath(inputFileName, outputDirectoryPath)
   nodeType = generateNodeTypeVector(map)
   classes = generateNodeClasses(map)
+  if (is.null(classes)) {
+    return (NULL)
+  }
   nodes <- data.frame(map$nodes$id, nodeType, map$nodes$name, inputFileName)
   names(nodes) <- c("NodeID", "NodeType", "Name", "Source")
   links <- data.frame(map$links$source, map$links$target, map$links$name)
@@ -136,13 +145,15 @@ processJSON = function(inputFileName, outputDirectoryPath) {
   rowNames = 1:length(map$nodes$id)
   NodeID = map$nodes$id
   linkDF = populateLinkDataFrame(map$links, initLinkDataFrame(map$nodes$id))
-  write.table(cbind(nodes, NodeID, linkDF),
-              file = blmFilePath, append = FALSE,
-              quote = FALSE, row.names = rowNames, col.names = NA, sep = "\t")
-  write("\n", file = blmFilePath, append = TRUE)
-  write.table(links,
-              file = blmFilePath, append = TRUE,
-              quote = FALSE, row.names = TRUE, col.names = NA, sep = "\t")
+  if (!is.null(linkDF)) {
+    write.table(cbind(nodes, NodeID, linkDF),
+		file = blmFilePath, append = FALSE,
+		quote = FALSE, row.names = rowNames, col.names = NA, sep = "\t")
+    write("\n", file = blmFilePath, append = TRUE)
+    write.table(links,
+		file = blmFilePath, append = TRUE,
+		quote = FALSE, row.names = TRUE, col.names = NA, sep = "\t")
+  }
   return (classes)
 }
 
@@ -163,13 +174,16 @@ inputFiles = list.files(path = args[6], pattern = "*.json")
 nInputFiles = length(inputFiles)
 
 for (i in 1:nInputFiles) {
+  write(paste("Processing ", inputFiles[i]), stdout()) 
   classes = processJSON(inputFiles[i], outputDirectoryPath)
-  roles = c(roles, classes[[1]])
-  resps = c(resps, classes[[2]])
-  needs = c(needs, classes[[3]])
-  rsrces = c(rsrces, classes[[4]])
-  wishes = c(wishes, classes[[5]])
-  texts = c(texts, classes[[6]])
+  if (!is.null(classes)) {
+    roles = c(roles, classes[[1]])
+    resps = c(resps, classes[[2]])
+    needs = c(needs, classes[[3]])
+    rsrces = c(rsrces, classes[[4]])
+    wishes = c(wishes, classes[[5]])
+    texts = c(texts, classes[[6]])
+  }
 }
 
 write("ROLES:", outputNodeClassesFileName, append = FALSE)
