@@ -1,10 +1,10 @@
-# R script blm.R 2016/06/22 (blm: binary link matrix)
+# R script blm.R (blm: binary link matrix)
 #
 # Usage:
 #   RScript ./blm.R /path/to/input/direcory /path/to/output/directory
 #
 # For each SSM .json file in the input directory, read that file into variable
-#"map", then create a "binary link matrix" as a data-frame of dimension n, where
+# "map", then create a "binary link matrix" as a data-frame of dimension n, where
 # n is the number of nodes in the input .json file. The rows and columns of the
 # data frame are named by the node names "map$nodes$name". The value of m[
 # , j] is 1 if there is a link between node[i] and node[j], otherwise 0. For
@@ -18,6 +18,7 @@
 # organized by node type. Thus, names for all the "role" nodes are listed
 # together, names for all "responsibility" nodes are listed together, etc.
 
+library(methods)
 library(tools)
 library(jsonlite)
 
@@ -150,9 +151,9 @@ processJSON = function(inputFileName, outputDirectoryPath) {
 		file = blmFilePath, append = FALSE,
 		quote = FALSE, row.names = rowNames, col.names = NA, sep = "\t")
     write("\n", file = blmFilePath, append = TRUE)
-    write.table(links,
-		file = blmFilePath, append = TRUE,
-		quote = FALSE, row.names = TRUE, col.names = NA, sep = "\t")
+#    write.table(links,
+#		file = blmFilePath, append = TRUE,
+#		quote = FALSE, row.names = TRUE, col.names = NA, sep = "\t")
   }
   return (classes)
 }
