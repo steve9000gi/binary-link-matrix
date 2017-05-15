@@ -57,7 +57,7 @@ initLinkDataFrame <- function(nodeId) {
 populateLinkDataFrame = function(links, blankDF) {
   # For a given cell from row[i] and column[j], where i and j are the ids of
   # their respective nodes, put 1 in that cell if there is a link from
-  # node[id = i] and node[id = j] in either direction.
+  # node[id = i] and node[id = j]. Note: not bidirectional.
   df = blankDF
   nLinks = dim(links)[1]
   if (is.null(nLinks)) {
@@ -67,7 +67,6 @@ populateLinkDataFrame = function(links, blankDF) {
     s = as.character(links$source[i])
     t = as.character(links$target[i])
     df[[s, t]] = 1
-    df[[t, s]] = 1
   }
   return (df)  
 }
