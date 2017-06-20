@@ -1,7 +1,7 @@
 # R script blm.R (blm: binary link matrix)
 #
 # Usage:
-#   RScript ./blm.R /path/to/input/direcory /path/to/output/directory
+#   RScript ./blm.R /path/to/input/directory /path/to/output/directory
 #
 # For each SSM .json file in the input directory, read that file into variable
 # "map", then create a "binary link matrix" as a data-frame of dimension n, where
@@ -127,7 +127,7 @@ generateNodeClasses = function(map) {
   return (list(roles, resps, needs, rsrces, wishes, texts))
 }
 
-processJSON = function(inputFileName, outputDirectoryPath) {
+processJSONInput = function(inputFileName, outputDirectoryPath) {
   map = generateMap(inputFileName)
   blmFilePath = generateOutputBLMFilePath(inputFileName, outputDirectoryPath)
   nodeType = generateNodeTypeVector(map)
@@ -157,6 +157,17 @@ processJSON = function(inputFileName, outputDirectoryPath) {
   return (classes)
 }
 
+writeJSONRing = function(outputDirectoryPath, ringName, ringList) {
+  jsonFilePath = paste0(outputDirectoryPath, "/", ringName, ".json")
+  lst = list()
+  lst[[ringName]] = ringList
+  unsorted = list()
+  unsorted[["unsorted"]] = lst
+  jsonRing = toJSON(unsorted)
+  write(jsonRing, jsonFilePath)
+  return (lst)
+}
+
 # main
 args = commandArgs()
 outputDirectoryPath = args[7]
@@ -175,7 +186,7 @@ nInputFiles = length(inputFiles)
 
 for (i in 1:nInputFiles) {
   write(paste("Processing ", inputFiles[i]), stdout()) 
-  classes = processJSON(inputFiles[i], outputDirectoryPath)
+  classes = processJSONInput(inputFiles[i], outputDirectoryPath)
   if (!is.null(classes)) {
     roles = c(roles, classes[[1]])
     resps = c(resps, classes[[2]])
@@ -186,6 +197,7 @@ for (i in 1:nInputFiles) {
   }
 }
 
+# Write text output:
 write("ROLES:", outputNodeClassesFileName, append = FALSE)
 write(roles, outputNodeClassesFileName, append = TRUE)
 write("\nRESPONSIBILITIES:", outputNodeClassesFileName, append = TRUE)
@@ -199,3 +211,14 @@ write(wishes, outputNodeClassesFileName, append = TRUE)
 write("\nTEXTS:", outputNodeClassesFileName, append = TRUE)
 write(texts, outputNodeClassesFileName, append = TRUE)
 
+# Write JSON output:
+ringList = c(writeJSONRing(outputDirectoryPath, "ROLES", roles))
+ringList = c(ringList, writeJSONRing(outputDirectoryPath, "RESPONSIBILITIES", resps))
+ringList = c(ringList,  writeJSONRing(outputDirectoryPath, "NEEDS", needs))
+ringList = c(ringList,  writeJSONRing(outputDirectoryPath, "RESOURCES", rsrces))
+ringList = c(ringList,  writeJSONRing(outputDirectoryPath, "WISHES", wishes))
+ringList = c(ringList,  writeJSONRing(outputDirectoryPath, "TEXTS", texts))
+aggFilePath = paste0(outputDirectoryPath, "/aggregated.json")
+unsorted = list()
+unsorted[["unsorted"]] = ringList
+write(toJSON(unsorted), aggFilePath)
