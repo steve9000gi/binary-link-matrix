@@ -157,15 +157,37 @@ processJSONInput = function(inputFileName, outputDirectoryPath) {
   return (classes)
 }
 
-writeJSONRing = function(outputDirectoryPath, ringName, ringList) {
+# A textObj represents a single node name; itemList is a list of textObj; ringObj is a key-value
+# pair where the key is the ringName and the value is an itemList; unsorted is a key-value pair
+# where the key is "unsorted" and the value is lst. This function writes the data for one ring to a
+# JSON file, and returns that same data, presumably to be appended to a master JSON file.
+writeJSONRing = function(outputDirectoryPath, ringName, textItems) {
+
+  write("\n", stdout())
+  cat(paste0(ringName, ": "))
+  cat(paste0(textItems))
+  write (typeof(textItems), stdout())
+  write(paste0("Is textItems a list? ", is.list(textItems)), stdout())
+  write(paste0("Is textItems a vector? ", is.vector(textItems)), stdout())
+  write(paste0("Number of textItems: ", length(textItems)), stdout())
+
   jsonFilePath = paste0(outputDirectoryPath, "/", ringName, ".json")
-  lst = list()
-  lst[[ringName]] = ringList
+  ringObj = list()
+  ringObj[[ringName]] = textItems
+  itemList = list()
+  itemListParent = list()
   unsorted = list()
-  unsorted[["unsorted"]] = lst
-  jsonRing = toJSON(unsorted)
+  for (i in 1:length(textItems)) {
+    textObj = list()
+    textObj[["text"]] = textItems[i]
+    itemList[[length(itemList) + 1]] = textObj
+  }
+  itemListParent[["textItems"]] = itemList
+  ringObj[[ringName]] = itemListParent
+  unsorted[["unsorted"]] = ringObj
+  jsonRing = toJSON(unsorted, auto_unbox = TRUE)
   write(jsonRing, jsonFilePath)
-  return (lst)
+  return (ringObj)
 }
 
 # main
@@ -213,6 +235,10 @@ write(texts, outputNodeClassesFileName, append = TRUE)
 
 # Write JSON output:
 ringList = c(writeJSONRing(outputDirectoryPath, "ROLES", roles))
+#write(roles, stdout())
+#write (typeof(roles), stdout())
+#write(paste0("Is roles a list? ", is.list(roles)), stdout())
+#write(paste0("length of roles: ", length(roles)), stdout())
 ringList = c(ringList, writeJSONRing(outputDirectoryPath, "RESPONSIBILITIES", resps))
 ringList = c(ringList,  writeJSONRing(outputDirectoryPath, "NEEDS", needs))
 ringList = c(ringList,  writeJSONRing(outputDirectoryPath, "RESOURCES", rsrces))
@@ -221,4 +247,4 @@ ringList = c(ringList,  writeJSONRing(outputDirectoryPath, "TEXTS", texts))
 aggFilePath = paste0(outputDirectoryPath, "/aggregated.json")
 unsorted = list()
 unsorted[["unsorted"]] = ringList
-write(toJSON(unsorted), aggFilePath)
+write(toJSON(unsorted, auto_unbox = TRUE), aggFilePath)
