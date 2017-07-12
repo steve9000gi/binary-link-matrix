@@ -35,7 +35,7 @@ generateOutputBLMFilePath = function(inputFileName, outputDirectoryPath) {
 }
 
 generateOutputNodeClassesFileName = function(outputDirectoryPath) {
-  return (paste0(outputDirectoryPath, "/NodeClasses.csv"))
+  return (paste0(outputDirectoryPath, "/aggregated.txt"))
 }
 
 initLinkDataFrame <- function(nodeId) {
@@ -157,20 +157,16 @@ processJSONInput = function(inputFileName, outputDirectoryPath) {
   return (classes)
 }
 
-# A textObj represents a single node name; itemList is a list of textObj; ringObj is a key-value
-# pair where the key is the ringName and the value is an itemList; unsorted is a key-value pair
-# where the key is "unsorted" and the value is lst. This function writes the data for one ring to a
-# JSON file, and returns that same data, presumably to be appended to a master JSON file.
+# A textObj represents a single node name. An itemList is a list of the textObj's associated with
+# the ring with name ringName; itemListParent is a key-value pair where the key is "textItems" and 
+# the value is the itemList. ringObj is a key-value pair where the key is a ringName and the value
+# is the associated itemListParent. unsorted is a key-value pair where the key is "unsorted" and the
+# value is one or more ringObj's. This function writes the data for one ring to a JSON file, and
+# returns that same data at the ringObj level, i.e., not (yet) as a value for key "unsorted,"
+# presumably to be appended to a master JSON file containing ringObj's for all the rings in all the
+# maps in the input directory. All these layers cause these outputs to conform to the same JSON
+# format used for input to and output from the sort website, and used for AddCodesToBLM.R input.
 writeJSONRing = function(outputDirectoryPath, ringName, textItems) {
-
-  write("\n", stdout())
-  cat(paste0(ringName, ": "))
-  cat(paste0(textItems))
-  write (typeof(textItems), stdout())
-  write(paste0("Is textItems a list? ", is.list(textItems)), stdout())
-  write(paste0("Is textItems a vector? ", is.vector(textItems)), stdout())
-  write(paste0("Number of textItems: ", length(textItems)), stdout())
-
   jsonFilePath = paste0(outputDirectoryPath, "/", ringName, ".json")
   ringObj = list()
   ringObj[[ringName]] = textItems
@@ -235,10 +231,6 @@ write(texts, outputNodeClassesFileName, append = TRUE)
 
 # Write JSON output:
 ringList = c(writeJSONRing(outputDirectoryPath, "ROLES", roles))
-#write(roles, stdout())
-#write (typeof(roles), stdout())
-#write(paste0("Is roles a list? ", is.list(roles)), stdout())
-#write(paste0("length of roles: ", length(roles)), stdout())
 ringList = c(ringList, writeJSONRing(outputDirectoryPath, "RESPONSIBILITIES", resps))
 ringList = c(ringList,  writeJSONRing(outputDirectoryPath, "NEEDS", needs))
 ringList = c(ringList,  writeJSONRing(outputDirectoryPath, "RESOURCES", rsrces))
