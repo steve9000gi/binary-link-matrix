@@ -22,11 +22,11 @@ library(methods)
 library(tools)
 library(jsonlite)
 
-generateMap = function(inputFileName) {
+generateMap <- function(inputFileName) {
   return (fromJSON(inputFileName))
 }
 
-generateOutputBLMFilePath = function(inputFileName, outputDirectoryPath) {
+generateOutputBLMFilePath <- function(inputFileName, outputDirectoryPath) {
   charVec = strsplit(inputFileName, "/")
   fNameBase = file_path_sans_ext(charVec[[1]][length(charVec[[1]])]);
   outputBLMPath = paste0(outputDirectoryPath, "/", fNameBase, "-BLM.csv",
@@ -34,7 +34,7 @@ generateOutputBLMFilePath = function(inputFileName, outputDirectoryPath) {
   return (outputBLMPath)
 }
 
-generateOutputNodeClassesFileName = function(outputDirectoryPath) {
+generateOutputNodeClassesFileName <- function(outputDirectoryPath) {
   return (paste0(outputDirectoryPath, "/aggregated.txt"))
 }
 
@@ -54,7 +54,7 @@ initLinkDataFrame <- function(nodeId) {
   return (linkDF)
 }
 
-populateLinkDataFrame = function(links, blankDF) {
+populateLinkDataFrame <- function(links, blankDF) {
   # For a given cell from row[i] and column[j], where i and j are the ids of
   # their respective nodes, put 1 in that cell if there is a link from
   # node[id = i] and node[id = j]. Note: not bidirectional.
@@ -71,7 +71,7 @@ populateLinkDataFrame = function(links, blankDF) {
   return (df)  
 }
 
-generateNodeTypeVector = function(map) {
+generateNodeTypeVector <- function(map) {
   # Accepts a map, returns a vector of the corresponding node types, based on
   # System Support Map conventions.
   nShapes = length(map$nodes$shape)
@@ -93,14 +93,14 @@ generateNodeTypeVector = function(map) {
   return (nodeTypes)
 }
 
-generateNodeClasses = function(map) {
+generateNodeClasses <- function(map) {
   # Accepts a map, returns the corresponding node classes, based on System
   # Support Map conventions.
   nShapes = length(map$nodes$shape)
   roles  = c()
   resps  = c()
   needs  = c()
-  rsrces = c()
+  resources = c()
   wishes = c()
   texts  = c()
   if (nShapes < 1) {
@@ -115,7 +115,7 @@ generateNodeClasses = function(map) {
     } else if (shape == "diamond") {
       needs = c(needs, map$nodes$name[i])
     } else if (shape == "ellipse") {
-      rsrces = c(rsrces, map$nodes$name[i])
+      resources = c(resources, map$nodes$name[i])
     } else if (shape == "star") {
       wishes = c(wishes, map$nodes$name[i])
     } else if (shape == "noBorder") {
@@ -124,7 +124,7 @@ generateNodeClasses = function(map) {
       print("Unknown shape")
     }
   }
-  return (list(roles, resps, needs, rsrces, wishes, texts))
+  return (list(roles, resps, needs, resources, wishes, texts))
 }
 
 processJSONInput = function(inputFileName, outputDirectoryPath) {
@@ -150,9 +150,6 @@ processJSONInput = function(inputFileName, outputDirectoryPath) {
 		file = blmFilePath, append = FALSE,
 		quote = FALSE, row.names = rowNames, col.names = NA, sep = "\t")
     write("\n", file = blmFilePath, append = TRUE)
-#    write.table(links,
-#		file = blmFilePath, append = TRUE,
-#		quote = FALSE, row.names = TRUE, col.names = NA, sep = "\t")
   }
   return (classes)
 }
@@ -166,17 +163,19 @@ processJSONInput = function(inputFileName, outputDirectoryPath) {
 # presumably to be appended to a master JSON file containing ringObj's for all the rings in all the
 # maps in the input directory. All these layers cause these outputs to conform to the same JSON
 # format used for input to and output from the sort website, and used for AddCodesToBLM.R input.
-writeJSONRing = function(outputDirectoryPath, ringName, textItems) {
+writeJSONRing <- function(outputDirectoryPath, ringName, textItems) {
   jsonFilePath = paste0(outputDirectoryPath, "/", ringName, ".json")
   ringObj = list()
-  ringObj[[ringName]] = textItems
+  unsorted = list()
   itemList = list()
   itemListParent = list()
-  unsorted = list()
-  for (i in 1:length(textItems)) {
-    textObj = list()
-    textObj[["text"]] = textItems[i]
-    itemList[[length(itemList) + 1]] = textObj
+  if ((!is.null(textItems)) && (length(textItems) > 0)) {
+    ringObj[[ringName]] = textItems
+    for (i in 1:length(textItems)) {
+      textObj = list()
+      textObj[["text"]] = textItems[i]
+      itemList[[length(itemList) + 1]] = textObj
+    }
   }
   itemListParent[["textItems"]] = itemList
   ringObj[[ringName]] = itemListParent
@@ -184,6 +183,12 @@ writeJSONRing = function(outputDirectoryPath, ringName, textItems) {
   jsonRing = toJSON(unsorted, auto_unbox = TRUE)
   write(jsonRing, jsonFilePath)
   return (ringObj)
+}
+
+writeRingTextFile <- function(outputDirectoryPath, ringName, textItems) {
+  textFilePath = paste0(outputDirectoryPath, "/", ringName, ".txt")
+  write(ringName, textFilePath, append = FALSE)
+  write(textItems, textFilePath, append = TRUE)
 }
 
 # main
@@ -194,7 +199,7 @@ outputNodeClassesFileName = generateOutputNodeClassesFileName(outputDirectoryPat
 roles = c()
 resps = c()
 needs = c()
-rsrces = c()
+resources = c()
 wishes = c()
 texts = c()
 
@@ -209,31 +214,38 @@ for (i in 1:nInputFiles) {
     roles = c(roles, classes[[1]])
     resps = c(resps, classes[[2]])
     needs = c(needs, classes[[3]])
-    rsrces = c(rsrces, classes[[4]])
+    resources = c(resources, classes[[4]])
     wishes = c(wishes, classes[[5]])
     texts = c(texts, classes[[6]])
   }
 }
 
 # Write text output:
-write("ROLES:", outputNodeClassesFileName, append = FALSE)
+write("ROLES", outputNodeClassesFileName, append = FALSE)
 write(roles, outputNodeClassesFileName, append = TRUE)
-write("\nRESPONSIBILITIES:", outputNodeClassesFileName, append = TRUE)
+write("\nRESPONSIBILITIES", outputNodeClassesFileName, append = TRUE)
 write(resps, outputNodeClassesFileName, append = TRUE)
-write("\nNEEDS:", outputNodeClassesFileName, append = TRUE)
+write("\nNEEDS", outputNodeClassesFileName, append = TRUE)
 write(needs, outputNodeClassesFileName, append = TRUE)
-write("\nRESOURCES:", outputNodeClassesFileName, append = TRUE)
-write(rsrces, outputNodeClassesFileName, append = TRUE)
-write("\nWISHES:", outputNodeClassesFileName, append = TRUE)
+write("\nRESOURCES", outputNodeClassesFileName, append = TRUE)
+write(resources, outputNodeClassesFileName, append = TRUE)
+write("\nWISHES", outputNodeClassesFileName, append = TRUE)
 write(wishes, outputNodeClassesFileName, append = TRUE)
-write("\nTEXTS:", outputNodeClassesFileName, append = TRUE)
+write("\nTEXTS", outputNodeClassesFileName, append = TRUE)
 write(texts, outputNodeClassesFileName, append = TRUE)
+
+writeRingTextFile(outputDirectoryPath, "ROLES", roles)
+writeRingTextFile(outputDirectoryPath, "RESPONSIBILITIES", resps)
+writeRingTextFile(outputDirectoryPath, "NEEDS", needs)
+writeRingTextFile(outputDirectoryPath, "RESOURCES", resources)
+writeRingTextFile(outputDirectoryPath, "WISHES", wishes)
+writeRingTextFile(outputDirectoryPath, "TEXTS", texts)
 
 # Write JSON output:
 ringList = c(writeJSONRing(outputDirectoryPath, "ROLES", roles))
 ringList = c(ringList, writeJSONRing(outputDirectoryPath, "RESPONSIBILITIES", resps))
 ringList = c(ringList,  writeJSONRing(outputDirectoryPath, "NEEDS", needs))
-ringList = c(ringList,  writeJSONRing(outputDirectoryPath, "RESOURCES", rsrces))
+ringList = c(ringList,  writeJSONRing(outputDirectoryPath, "RESOURCES", resources))
 ringList = c(ringList,  writeJSONRing(outputDirectoryPath, "WISHES", wishes))
 ringList = c(ringList,  writeJSONRing(outputDirectoryPath, "TEXTS", texts))
 aggFilePath = paste0(outputDirectoryPath, "/aggregated.json")
