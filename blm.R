@@ -4,11 +4,11 @@
 #   RScript ./blm.R /path/to/input/directory /path/to/output/directory
 #
 # For each SSM .json file in the input directory, read that file into variable
-# "map", then create a "binary link matrix" as a data-frame of dimension n, where
-# n is the number of nodes in the input .json file. The rows and columns of the
-# data frame are named by the node names "map$nodes$name". The value of m[i, j]
-# is 1 if there is a link between node[i] and node[j], otherwise 0. For # each
-# file write 1) the blm to a csv output file, along with 2) a list of nodes
+# "map", then create a "binary link matrix" as a data-frame of dimension n,
+# where n is the number of nodes in the input .json file. The rows and columns
+# of the data frame are named by the node names "map$nodes$name". The value of
+# m[i, j] is 1 if there is a link between node[i] and node[j], otherwise 0. For
+# each file write 1) the blm to a csv output file, along with 2) a list of nodes
 # showing id, type (role, responsibility, etc.), and name (associated text), and
 # 3) a list of links showing source and target node ids and name (i.e., the text
 # associated with that link).
@@ -96,13 +96,13 @@ generateNodeTypeVector <- function(map) {
 generateNodeClasses <- function(map) {
   # Accepts a map, returns the corresponding node classes, based on System
   # Support Map conventions.
-  nShapes = length(map$nodes$shape)
-  roles  = c()
-  resps  = c()
-  needs  = c()
+  nShapes   = length(map$nodes$shape)
+  roles     = c()
+  resps     = c()
+  needs     = c()
   resources = c()
-  wishes = c()
-  texts  = c()
+  wishes    = c()
+  texts     = c()
   if (nShapes < 1) {
     return (NULL)
   }
@@ -141,7 +141,6 @@ processJSONInput = function(inputFileName, outputDirectoryPath) {
   if (nrow(links) > 0) {
     names(links) <- c("Source", "Target", "Name")
   }
-
   rowNames = 1:length(map$nodes$id)
   NodeID = map$nodes$id
   linkDF = populateLinkDataFrame(map$links, initLinkDataFrame(map$nodes$id))
@@ -154,16 +153,19 @@ processJSONInput = function(inputFileName, outputDirectoryPath) {
   return (classes)
 }
 
-# A textObj represents a single node name. An itemList is a list of the textObj's associated with
-# the ring with name ringName; itemListParent is a key-value pair where the key is "textItems" and 
-# the value is the itemList. ringObj is a key-value pair where the key is a ringName and the value
-# is the associated itemListParent. unsorted is a key-value pair where the key is "unsorted" and the
-# value is one or more ringObj's. This function writes the data for one ring to a JSON file, and
-# returns that same data at the ringObj level, i.e., not (yet) as a value for key "unsorted,"
-# presumably to be appended to a master JSON file containing ringObj's for all the rings in all the
-# maps in the input directory. All these layers cause these outputs to conform to the same JSON
-# format used for input to and output from the sort website, and used for AddCodesToBLM.R input.
 writeJSONRing <- function(outputDirectoryPath, ringName, textItems) {
+  # A textObj represents a single node name. An itemList is a list of the
+  # textObjs associated with the ring with name ringName; itemListParent is a
+  # key-value pair where the key is "textItems" and the value is the itemList.
+  # ringObj is a key-value pair where the key is a ringName and the value is the
+  # associated itemListParent. unsorted is a key-value pair where the key is
+  # "unsorted" and the value is one or more ringObjs. This function writes the
+  # data for one ring to a JSON file, and returns that same data at the ringObj
+  # level, i.e., not (yet) as a value for key "unsorted," presumably to be
+  # appended to a master JSON file containing ringObj's for all the rings in all
+  # the maps in the input directory. All these layers cause these outputs to
+  # conform to the same JSON format used for input to and output from the sort
+  # website, and used for AddCodesToBLM.R input.
   jsonFilePath = paste0(outputDirectoryPath, "/", ringName, ".json")
   ringObj = list()
   unsorted = list()
@@ -192,8 +194,21 @@ writeRingTextFile <- function(outputDirectoryPath, ringName, textItems) {
 }
 
 # main
-args = commandArgs()
-outputDirectoryPath = args[7]
+args = commandArgs(trailingOnly = TRUE)
+
+if (length(args) < 2) {
+  write("usage: RScript ./blm.R /path/to/input/directory 
+        /path/to/output/directory", stdout())
+  stop("Too few arguments")
+}
+
+inputDirectoryPath = args[1]
+if (!dir.exists(inputDirectoryPath)) {
+  stop("SSM input directory not found")
+}
+
+outputDirectoryPath = args[2]
+dir.create(outputDirectoryPath, showWarnings = FALSE)
 
 outputNodeClassesFileName = generateOutputNodeClassesFileName(outputDirectoryPath)
 roles = c()
@@ -203,8 +218,8 @@ resources = c()
 wishes = c()
 texts = c()
 
-setwd(args[6])
-inputFiles = list.files(path = args[6], pattern = "*.json")
+setwd(inputDirectoryPath)
+inputFiles = list.files(path = inputDirectoryPath, pattern = "*.json")
 nInputFiles = length(inputFiles)
 
 for (i in 1:nInputFiles) {
