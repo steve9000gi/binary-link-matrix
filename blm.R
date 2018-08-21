@@ -175,8 +175,21 @@ writeJSONRing <- function(outputDirectoryPath, ringName, textItems) {
     ringObj[[ringName]] = textItems
     for (i in 1:length(textItems)) {
       textObj = list()
-      textObj[["text"]] = textItems[i]
-      itemList[[length(itemList) + 1]] = textObj
+      # write(paste0("textItems[", i, "]: ",textItems[i]), stdout())
+      splitArray = strsplit(textItems[i], "\\{rcode ")
+      # write(paste0("splitArray[[1]]; typeof(", typeof(splitArray[[1]]), "); length: ", length(splitArray[[1]])), stdout())
+      nRcodes = length(splitArray[[1]]) - 1
+      if (nRcodes > 0) {
+      # Then add a separate text item for each rcode:
+        for (j in 1:nRcodes) {
+          textObj[["text"]] = textItems[i] # Puts all rcodes on each text item
+          # textObj[["text"]] = paste(splitArray[[1]][1], "{rcode", splitArray[[1]][j + 1]) # This puts one rcode with each text item
+          itemList[[length(itemList) + 1]] = textObj
+        }
+      } else {
+        textObj[["text"]] = textItems[i]
+        itemList[[length(itemList) + 1]] = textObj
+      }
     }
   }
   itemListParent[["textItems"]] = itemList
